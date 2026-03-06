@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>AgriPulse · precision agriculture</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="lib/font-awesome.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Animated background elements -->
+        <div class="floating-shape shape-1"></div>
+        <div class="floating-shape shape-2"></div>
+        <div class="floating-shape shape-3"></div>
+        
+        <!-- Show Login/Register when not authenticated -->
+        <div v-if="!isAuthenticated" class="auth-wrapper">
+            <div class="auth-card" data-tilt data-tilt-max="3" data-tilt-glare data-tilt-max-glare="0.2">
+                <!-- Header -->
+                <div class="auth-header">
+                    <i class="fas fa-seedling"></i>
+                    <h1>AgriPulse <span>precision agriculture</span></h1>
+                    <p>AI-powered soil intelligence for better yields</p>
+                </div>
+                
+                <!-- Tab Switcher -->
+                <div class="auth-tabs">
+                    <button :class="['tab-btn', { active: authMode === 'login' }]" @click="switchMode('login')">
+                        <i class="fas fa-sign-in-alt"></i>
+                        <span>Login</span>
+                    </button>
+                    <button :class="['tab-btn', { active: authMode === 'register' }]" @click="switchMode('register')">
+                        <i class="fas fa-user-plus"></i>
+                        <span>Register</span>
+                    </button>
+                </div>
+                
+                <!-- Login Form -->
+                <form v-if="authMode === 'login'" @submit.prevent="handleLogin" class="auth-form">
+                    <div class="input-group">
+                        <label>
+                            <i class="fas fa-user"></i>
+                            Username
+                        </label>
+                        <input 
+                            type="text" 
+                            v-model="loginForm.username" 
+                            placeholder="farmer@agripulse" 
+                            required
+                        >
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>
+                            <i class="fas fa-lock"></i>
+                            Password
+                        </label>
+                        <input 
+                            type="password" 
+                            v-model="loginForm.password" 
+                            placeholder="••••••••" 
+                            required
+                        >
+                    </div>
+                    
+                    <div class="form-row">
+                        <label class="checkbox-label">
+                            <input type="checkbox" v-model="loginForm.remember">
+                            <span class="checkmark"></span>
+                            Remember me
+                        </label>
+                        <a href="#" class="forgot-link" @click.prevent="showForgotPassword">
+                            Forgot password?
+                        </a>
+                    </div>
+                    
+                    <button type="submit" class="submit-btn" :disabled="isLoggingIn">
+                        <i class="fas" :class="isLoggingIn ? 'fa-spinner fa-spin' : 'fa-sign-in-alt'"></i>
+                        {{ isLoggingIn ? 'Authenticating...' : 'Access Dashboard' }}
+                    </button>
+                    
+                    <div v-if="loginError" class="message error">
+                        <i class="fas fa-exclamation-circle"></i>
+                        {{ loginError }}
+                    </div>
+                </form>
+                
+                <!-- Register Form -->
+                <form v-else @submit.prevent="handleRegister" class="auth-form">
+                    <div class="input-group">
+                        <label>
+                            <i class="fas fa-id-card"></i>
+                            Full Name
+                        </label>
+                        <input 
+                            type="text" 
+                            v-model="registerForm.fullName" 
+                            placeholder="John Farmer" 
+                            required
+                        >
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>
+                            <i class="fas fa-user"></i>
+                            Username
+                        </label>
+                        <input 
+                            type="text" 
+                            v-model="registerForm.username" 
+                            placeholder="farmer123" 
+                            required
+                        >
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>
+                            <i class="fas fa-envelope"></i>
+                            Email
+                        </label>
+                        <input 
+                            type="email" 
+                            v-model="registerForm.email" 
+                            placeholder="farmer@example.com" 
+                            required
+                        >
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>
+                            <i class="fas fa-lock"></i>
+                            Password
+                        </label>
+                        <input 
+                            type="password" 
+                            v-model="registerForm.password" 
+                            placeholder="••••••••" 
+                            minlength="6"
+                            required
+                        >
+                        <div class="password-strength" v-if="registerForm.password">
+                            <div class="strength-bar" :style="{ width: passwordStrength + '%' }"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>
+                            <i class="fas fa-lock"></i>
+                            Confirm Password
+                        </label>
+                        <input 
+                            type="password" 
+                            v-model="registerForm.confirmPassword" 
+                            placeholder="••••••••" 
+                            required
+                        >
+                    </div>
+                    
+                    <div class="terms-checkbox">
+                        <label class="checkbox-label">
+                            <input type="checkbox" v-model="registerForm.agreeTerms">
+                            <span class="checkmark"></span>
+                            I agree to the <a href="#" @click.prevent="showTerms">Terms & Conditions</a>
+                        </label>
+                    </div>
+                    
+                    <button type="submit" class="submit-btn" :disabled="isRegistering">
+                        <i class="fas" :class="isRegistering ? 'fa-spinner fa-spin' : 'fa-user-check'"></i>
+                        {{ isRegistering ? 'Creating Account...' : 'Create Account' }}
+                    </button>
+                    
+                    <div v-if="registerError" class="message error">
+                        <i class="fas fa-exclamation-circle"></i>
+                        {{ registerError }}
+                    </div>
+                    
+                    <div v-if="registerSuccess" class="message success">
+                        <i class="fas fa-check-circle"></i>
+                        {{ registerSuccess }}
+                    </div>
+                </form>
+                
+                <!-- Footer -->
+                <div class="auth-footer">
+                    <p>Demo credentials: <strong>farmer / agripulse2026</strong></p>
+                    <p class="hint">
+                        <i class="fas fa-flask"></i>
+                        Hackarena 2026 · Sustainable Tech
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Dashboard (shown after login) -->
+        <div v-else class="dashboard-wrapper">
+            <!-- Header -->
+            <header class="glass-header">
+                <div class="logo">
+                    <i class="fas fa-seedling"></i> 
+                    AgriPulse <span class="light">precision</span>
+                </div>
+                <div class="header-right">
+                    <span class="user-badge">
+                        <i class="fas fa-user-circle"></i> 
+                        {{ currentUser.fullName || currentUser.username }}
+                    </span>
+                    <button @click="logout" class="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </div>
+            </header>
+
+            <!-- Dashboard Grid -->
+            <div class="dashboard-grid">
+                <!-- Left Panel: Input Options -->
+                <div class="card left-panel">
+                    <h2><i class="fas fa-database"></i> soil data & crop</h2>
+                    
+                    <div class="input-group">
+                        <label for="cropSelect"><i class="fas fa-tractor"></i> target crop</label>
+                        <select id="cropSelect" class="crop-select" v-model="selectedCrop">
+                            <option disabled value="">— choose crop —</option>
+                            <option value="TOMATO">🍅 TOMATO</option>
+                            <option value="WHEAT">🌾 WHEAT</option>
+                            <option value="RICE">🌱 RICE</option>
+                            <option value="MAIZE">🌽 MAIZE</option>
+                        </select>
+                    </div>
+
+                    <!-- CSV Upload Section -->
+                    <div class="input-section csv-section">
+                        <h3><i class="fas fa-file-csv"></i> upload csv file</h3>
+                        <div class="input-group file-upload">
+                            <label for="csvFile"><i class="fas fa-upload"></i> select sample_soil_data.csv</label>
+                            <input type="file" id="csvFile" accept=".csv" @change="handleFileUpload">
+                            <div class="file-hint">headers: soil_id,nitrogen,phosphorus,potassium,ph_level</div>
+                        </div>
+
+                        <!-- Sample Selector -->
+                        <div class="sample-panel">
+                            <p><i class="fas fa-flask"></i> quick csv samples</p>
+                            <div class="sample-buttons">
+                                <button class="sample-btn" @click="loadCsvSample('SOIL_001')">
+                                    SOIL_001 (tomato)
+                                </button>
+                                <button class="sample-btn" @click="loadCsvSample('SOIL_002')">
+                                    SOIL_002 (wheat)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Manual Input Section -->
+                    <div class="input-section manual-section">
+                        <h3><i class="fas fa-edit"></i> manual entry</h3>
+                        
+                        <!-- Quick Sample Buttons -->
+                        <div class="quick-samples">
+                            <p><i class="fas fa-magic"></i> quick test samples:</p>
+                            <div class="sample-buttons">
+                                <button class="sample-btn" @click="loadQuickSample('optimal')">
+                                    <i class="fas fa-star"></i> Optimal
+                                </button>
+                                <button class="sample-btn" @click="loadQuickSample('deficient')">
+                                    <i class="fas fa-exclamation-triangle"></i> Deficient
+                                </button>
+                                <button class="sample-btn" @click="loadQuickSample('critical')">
+                                    <i class="fas fa-times-circle"></i> Critical
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="nitrogenInput">
+                                <i class="fas fa-atom"></i> nitrogen (N)
+                            </label>
+                            <input 
+                                type="number" 
+                                id="nitrogenInput" 
+                                v-model.number="manualInput.nitrogen" 
+                                placeholder="0-50 mg/kg" 
+                                min="0" 
+                                max="100" 
+                                step="0.1"
+                            >
+                            <div class="input-hint">universal threshold: ≥ 20 mg/kg</div>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="phosphorusInput">
+                                <i class="fas fa-bolt"></i> phosphorus (P)
+                            </label>
+                            <input 
+                                type="number" 
+                                id="phosphorusInput" 
+                                v-model.number="manualInput.phosphorus" 
+                                placeholder="0-50 mg/kg" 
+                                min="0" 
+                                max="100" 
+                                step="0.1"
+                            >
+                            <div class="input-hint">universal threshold: ≥ 15 mg/kg</div>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="potassiumInput">
+                                <i class="fas fa-fire"></i> potassium (K)
+                            </label>
+                            <input 
+                                type="number" 
+                                id="potassiumInput" 
+                                v-model.number="manualInput.potassium" 
+                                placeholder="0-300 mg/kg" 
+                                min="0" 
+                                max="500" 
+                                step="0.1"
+                            >
+                            <div class="input-hint">universal threshold: ≥ 150 mg/kg</div>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="phInput">
+                                <i class="fas fa-balance-scale"></i> pH level
+                            </label>
+                            <input 
+                                type="number" 
+                                id="phInput" 
+                                v-model.number="manualInput.ph_level" 
+                                placeholder="0-14" 
+                                min="0" 
+                                max="14" 
+                                step="0.1"
+                            >
+                            <div class="input-hint">crop-specific ranges apply</div>
+                        </div>
+                    </div>
+
+                    <!-- Active Soil Summary -->
+                    <div v-if="currentSoil" class="active-soil">
+                        <span class="badge-soil">
+                            <i class="fas fa-map-pin"></i> Current Values
+                        </span>
+                        <div class="nutri-mini">
+                            <span>N: {{ currentSoil.nitrogen }}</span>
+                            <span>P: {{ currentSoil.phosphorus }}</span>
+                            <span>K: {{ currentSoil.potassium }}</span>
+                            <span>pH: {{ currentSoil.ph_level }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Center Panel: Suitability Score -->
+                <div class="card center-panel">
+                    <h2><i class="fas fa-chart-line"></i> suitability dashboard</h2>
+                    
+                    <div v-if="result" :class="['score-ring', healthColorClass]">
+                        <div class="score-value">{{ result.recommendation.suitability_score }}%</div>
+                        <div class="score-label">suitability</div>
+                    </div>
+                    <div v-else class="score-placeholder">
+                        <i class="fas fa-database fa-3x"></i>
+                        <p>upload csv or enter values manually</p>
+                    </div>
+
+                    <!-- Health Metrics -->
+                    <div v-if="result" class="metrics-deep">
+                        <div class="metric-item">
+                            <span class="label">overall health</span>
+                            <span :class="['pill', healthClass(result.health_metrics.overall_health)]">
+                                {{ result.health_metrics.overall_health }}
+                            </span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="label">critical deficiencies</span>
+                            <div class="deficiency-list">
+                                <span v-for="(def, idx) in result.health_metrics.critical_deficiencies" 
+                                      :key="idx" class="deficiency-pill">
+                                    {{ def }}
+                                </span>
+                                <span v-if="!result.health_metrics.critical_deficiencies.length">— none —</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- JSON Schema -->
+                    <div class="schema-drop">
+                        <details>
+                            <summary><i class="fas fa-code"></i> mandatory JSON schema</summary>
+                            <pre class="json-pre">{{ result ? JSON.stringify(result, null, 2) : '{\n  "soil_id": "SOIL_...",\n  "target_crop": "...",\n  "health_metrics": { ... },\n  "recommendation": { ... },\n  "ai_explanation": "..."\n}' }}</pre>
+                        </details>
+                    </div>
+                </div>
+
+                <!-- Graphs Panel -->
+                <div class="card graphs-panel">
+                    <h2><i class="fas fa-chart-bar"></i> nutrient analytics</h2>
+                    
+                    <div v-if="result" class="graphs-container">
+                        <!-- Nutrient Radar Chart -->
+                        <div class="chart-wrapper">
+                            <canvas id="nutrientChart" width="200" height="200"></canvas>
+                        </div>
+                        
+                        <!-- Comparison Bar Chart -->
+                        <div class="chart-wrapper">
+                            <canvas id="comparisonChart" width="200" height="200"></canvas>
+                        </div>
+                        
+                        <!-- Health Score Doughnut -->
+                        <div class="chart-wrapper small">
+                            <canvas id="healthChart" width="150" height="150"></canvas>
+                        </div>
+                    </div>
+                    <div v-else class="graphs-placeholder">
+                        <i class="fas fa-chart-line"></i>
+                        <p>graphs appear after analysis</p>
+                    </div>
+                </div>
+
+                <!-- Right Panel: AI Insights -->
+                <div class="card right-panel">
+                    <h2><i class="fas fa-flask"></i> fertilizer & AI insight</h2>
+                    
+                    <div v-if="result" class="rec-box">
+                        <p class="fertilizer-plan">
+                            <i class="fas fa-spray-can"></i> 
+                            {{ result.recommendation.fertilizer_plan }}
+                        </p>
+                        <div class="ai-explanation-block">
+                            <i class="fas fa-robot ai-icon"></i>
+                            <p class="ai-text">{{ result.ai_explanation }}</p>
+                        </div>
+                    </div>
+                    <div v-else class="rec-placeholder">
+                        <i class="fas fa-microchip"></i>
+                        <p>AI explanation will appear here</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="glass-footer">
+                <span>
+                    <i class="fab fa-github"></i> 
+                    manualInput / csvParser / logicEngine / aiExplanation
+                </span>
+                <span>⚡ HACKARENA 2026 – sustainable tech</span>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Libraries -->
+    <script src="lib/vanilla-tilt.min.js"></script>
+    <script src="lib/vue.global.js"></script>
+    <script src="lib/chart.min.js"></script>
+    
+    <!-- Custom JS Files (order matters) -->
+    <script src="js/csvParser.js"></script>
+    <script src="js/logicEngine.js"></script>
+    <script src="js/graphEngine.js"></script>
+    <script src="js/aiExplanation.js"></script>
+    <script src="js/uiController.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
